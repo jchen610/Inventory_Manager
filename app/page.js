@@ -3,11 +3,11 @@ import Image from "next/image";
 import {useState, useEffect} from 'react'
 import { firestore } from "@/firebase";
 import { Box, Button, Modal, Stack, TextField, Typography } from "@mui/material";
-import { deleteDoc, query, setDoc } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDocs, getDoc, query, setDoc } from "firebase/firestore";
 
 export default function Home() {
   const [inventory, setInventory] = useState([])
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
   const [itemName, setItemName] = useState('')
 
   const updateInventory = async () => {
@@ -65,6 +65,7 @@ export default function Home() {
       width="100vw" 
       height="100vh" 
       display="flex"
+      flexDirection="column"
       justifyContent="center"
       alignItems="center"
       gap={2}
@@ -101,12 +102,48 @@ export default function Home() {
               setItemName('')
               handleClose
             }}
-            ></Button>
+            >
+              Add
+            </Button>
           </Stack>
         </Box>
       </Modal>
-      <Typography variant="h1">Inventory Management</Typography>
-
+      <Button variant="contained" onClick={() => {
+        handleOpen()
+      }}>
+        Add New Item
+      </Button>
+      <Box border="1p solid #333">
+        <Box 
+          width="800px" 
+          height="100px" 
+          bgcolor="#ADD8E6" 
+          display="flex" 
+          alignItems="center" 
+          justifyContent="center">
+          <Typography variant="h2" color="#333">
+              Inventory Items
+          </Typography>
+        </Box>
+      </Box>
+      <Stack width="800px" height="300px" spacing={2} overflow="auto">
+        {
+          inventory.map(({name, quantity}) => (
+            <Box 
+              key={name} 
+              width="100%" 
+              minHeight="150px" 
+              display="flex" 
+              alignItems="center" 
+              justifyContent="center" 
+              bgcolor="#f0f0f0" 
+              padding={5}
+            >
+              <Typography>{name}</Typography>
+            </Box>
+          ))
+        }
+      </Stack>
     </Box>
   )
 }
