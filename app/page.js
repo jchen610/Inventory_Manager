@@ -11,6 +11,8 @@ export default function Home() {
   const [openEdit, setOpenEdit] = useState(false)
   const [itemName, setItemName] = useState('')
   const [itemQuantity, setItemQuantity] = useState(1)
+  const [editItemQuantity, setEditItemQuantity] = useState(1);
+  const [editItemName, setEditItemName] = useState('');
 
   const updateInventory = async () => {
     const snapshot = query(collection(firestore, 'inventory'))
@@ -142,11 +144,46 @@ export default function Home() {
           </Stack>
         </Box>
       </Modal>
+      <Modal open={openEdit} onClose={handleCloseEdit}>
+        <Box
+          position="absolute"
+          top="50%"
+          left="50%"
+          width={150}
+          bgcolor="white"
+          border="2px solid #0000"
+          boxShadow={24}
+          p={4}
+          display="flex"
+          flexDirection="column"
+          gap={2}
+          sx={{
+            transform: "translate(-50%, -50%)"
+          }}
+        >
+          <TextField
+            variant="outlined"
+            label="Quantity"
+            type="number"
+            value={editItemQuantity}
+            onChange={(e) => setEditItemQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+          />
+          <Button
+            variant="outlined"
+            onClick={() => {
+              editItem(editItemName, editItemQuantity)
+              setEditItemName('')
+              setEditItemQuantity(1)
+              handleCloseEdit()
+            }}
+          >
+            Save
+          </Button>
+        </Box>
+      </Modal>
       <Button
         variant="contained"
-        onClick={() => {
-          handleOpen()
-        }}
+        onClick={() => {handleOpen()}}
       >
         Add New Item
       </Button>
@@ -184,11 +221,9 @@ export default function Home() {
               <Stack direction="row" spacing={1}>
                 <Button
                   variant="contained"
-                  onClick={() => {
-                    const newQuantity = prompt("Enter new quantity:");
-                    if (newQuantity !== null) {
-                      editItem(name, parseInt(newQuantity, 10));
-                    }
+                  onClick={(e) => {
+                    setEditItemName(name)
+                    handleOpenEdit()
                   }}
                 >
                   Edit
