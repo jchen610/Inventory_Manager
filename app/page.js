@@ -1,34 +1,49 @@
-'use client'
+"use client";
 import Image from "next/image";
-import {useState, useEffect} from 'react'
+import { useState, useEffect } from "react";
 import { firestore } from "@/firebase";
-import { Box, Button, Modal, Stack, TextField, Typography } from "@mui/material";
-import { collection, deleteDoc, doc, getDocs, getDoc, query, setDoc } from "firebase/firestore";
+import {
+  Box,
+  Button,
+  Modal,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  getDoc,
+  query,
+  setDoc,
+} from "firebase/firestore";
 
 export default function Home() {
-  const [inventory, setInventory] = useState([])
-  const [open, setOpen] = useState(false)
-  const [openEdit, setOpenEdit] = useState(false)
-  const [itemName, setItemName] = useState('')
-  const [itemQuantity, setItemQuantity] = useState(1)
+  const [inventory, setInventory] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [openEdit, setOpenEdit] = useState(false);
+  const [itemName, setItemName] = useState("");
+  const [itemQuantity, setItemQuantity] = useState(1);
   const [editItemQuantity, setEditItemQuantity] = useState(1);
-  const [editItemName, setEditItemName] = useState('');
+  const [editItemName, setEditItemName] = useState("");
 
   const updateInventory = async () => {
-    const snapshot = query(collection(firestore, 'inventory'))
-    const docs = await getDocs(snapshot)
-    const inventoryList = []
+    const snapshot = query(collection(firestore, "inventory"));
+    const docs = await getDocs(snapshot);
+    const inventoryList = [];
     docs.forEach((doc) => {
       inventoryList.push({
         name: doc.id,
         ...doc.data(),
-      })
-    })
-    setInventory(inventoryList)
-  }
+      });
+    });
+    setInventory(inventoryList);
+  };
 
   const editItem = async (item, newQuantity) => {
-    const docRef = doc(collection(firestore, 'inventory'), item);
+    const docRef = doc(collection(firestore, "inventory"), item);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
@@ -38,53 +53,52 @@ export default function Home() {
   };
 
   const removeItem = async (item) => {
-    const docRef = doc(collection(firestore, 'inventory' ), item)
-    const docSnap = await getDoc(docRef)
-
-    if(docSnap.exists()){
-      const {quantity} = docSnap.data()
-      if (quantity == 1){
-        await deleteDoc(docRef)
-      }
-      else{
-        await setDoc(docRef, {quantity: quantity - 1})
-      }
-    }
-    await updateInventory()
-  }
-
-  const addItem = async (item) => {
-    const cleanedItem = item.toLowerCase().trim()
-    const docRef = doc(collection(firestore, 'inventory'), cleanedItem)
-    const docSnap = await getDoc(docRef)
+    const docRef = doc(collection(firestore, "inventory"), item);
+    const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
-      const { quantity } = docSnap.data()
-      await setDoc(docRef, { quantity: quantity + itemQuantity })
-    } else {
-      await setDoc(docRef, { quantity: itemQuantity })
+      const { quantity } = docSnap.data();
+      if (quantity == 1) {
+        await deleteDoc(docRef);
+      } else {
+        await setDoc(docRef, { quantity: quantity - 1 });
+      }
     }
-    await updateInventory()
-  }
+    await updateInventory();
+  };
+
+  const addItem = async (item) => {
+    const cleanedItem = item.toLowerCase().trim();
+    const docRef = doc(collection(firestore, "inventory"), cleanedItem);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      const { quantity } = docSnap.data();
+      await setDoc(docRef, { quantity: quantity + itemQuantity });
+    } else {
+      await setDoc(docRef, { quantity: itemQuantity });
+    }
+    await updateInventory();
+  };
 
   const clearItem = async (item) => {
-    const docRef = doc(collection(firestore, 'inventory' ), item)
-    const docSnap = await getDoc(docRef)
+    const docRef = doc(collection(firestore, "inventory"), item);
+    const docSnap = await getDoc(docRef);
 
-    if(docSnap.exists()){
-      await deleteDoc(docRef)
+    if (docSnap.exists()) {
+      await deleteDoc(docRef);
     }
-    await updateInventory()
-  }
-  
-  useEffect(() => {
-    updateInventory()
-  } , [])
+    await updateInventory();
+  };
 
-  const handleOpen = () => setOpen(true)
-  const handleClose = () => setOpen(false)
-  const handleOpenEdit = () => setOpenEdit(true)
-  const handleCloseEdit = () => setOpenEdit(false)
+  useEffect(() => {
+    updateInventory();
+  }, []);
+
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
+  const handleOpenEdit = () => setOpenEdit(true);
+  const handleCloseEdit = () => setOpenEdit(false);
 
   return (
     <Box
@@ -110,7 +124,7 @@ export default function Home() {
           flexDirection="column"
           gap={3}
           sx={{
-            transform: "translate(-50%, -50%)"
+            transform: "translate(-50%, -50%)",
           }}
         >
           <Typography variant="h6">Add Item</Typography>
@@ -120,7 +134,7 @@ export default function Home() {
               label="Item"
               value={itemName}
               onChange={(e) => {
-                setItemName(e.target.value)
+                setItemName(e.target.value);
               }}
             />
             <TextField
@@ -128,15 +142,17 @@ export default function Home() {
               label="Quantity"
               type="number"
               value={itemQuantity}
-              onChange={(e) => setItemQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+              onChange={(e) =>
+                setItemQuantity(Math.max(1, parseInt(e.target.value) || 1))
+              }
             />
             <Button
               variant="outlined"
               onClick={() => {
-                addItem(itemName)
-                setItemName('')
-                setItemQuantity(1)
-                handleClose()
+                addItem(itemName);
+                setItemName("");
+                setItemQuantity(1);
+                handleClose();
               }}
             >
               Add
@@ -158,23 +174,28 @@ export default function Home() {
           flexDirection="column"
           gap={2}
           sx={{
-            transform: "translate(-50%, -50%)"
+            transform: "translate(-50%, -50%)",
           }}
         >
           <TextField
             variant="outlined"
             label="Quantity"
             type="number"
-            value={editItemQuantity}
-            onChange={(e) => setEditItemQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+            defaultValue={
+              inventory.find((item) => item.name === editItemName)?.quantity ||
+              ""
+            }
+            onChange={(e) =>
+              setEditItemQuantity(Math.max(1, parseInt(e.target.value) || 1))
+            }
           />
           <Button
             variant="outlined"
             onClick={() => {
-              editItem(editItemName, editItemQuantity)
-              setEditItemName('')
-              setEditItemQuantity(1)
-              handleCloseEdit()
+              editItem(editItemName, editItemQuantity);
+              setEditItemName("");
+              setEditItemQuantity(1);
+              handleCloseEdit();
             }}
           >
             Save
@@ -183,47 +204,116 @@ export default function Home() {
       </Modal>
       <Button
         variant="contained"
-        onClick={() => {handleOpen()}}
+        onClick={() => {
+          handleOpen();
+        }}
       >
         Add New Item
       </Button>
-      <Box border="1px solid #333">
+      <Box 
+        border="1px solid #333"
+      >
         <Box
-          width="800px"
-          height="100px"
+          sx={{ width: { xs: "90vw" } }}
+          height="10vh"
           bgcolor="#ADD8E6"
           display="flex"
           alignItems="center"
           justifyContent="center"
         >
-          <Typography variant="h2" color="#333">
+          <Typography
+            variant="h2"
+            color="#333"
+            sx={{
+              fontSize: {
+                xs: "2rem",
+              },
+            }}
+          >
             Inventory Items
           </Typography>
         </Box>
-        <Stack width="800px" height="300px" spacing={2} overflow="auto">
+        <Stack
+          sx={{
+             width: { xs: "90vw" } 
+            }}
+          height="60vh"
+          spacing={2}
+          overflow="auto"
+        >
           {inventory.map(({ name, quantity }) => (
             <Box
               key={name}
               width="100%"
               minHeight="150px"
-              display="flex"
+              display="grid"
+              sx={{
+                gridTemplateColumns: { xs: "1fr .7fr .5fr", sm: "1fr 1fr 1fr" },
+              }}
               alignItems="center"
-              justifyContent="space-between"
               bgcolor="#f0f0f0"
-              padding={5}
+              padding={2}
             >
-              <Typography variant="h3" color="#333" textAlign="center">
+              <Typography
+                variant="h3"
+                color="#333"
+                sx={{
+                  maxWidth: "400px",
+                  overflow: "auto",
+                  textOverflow: "clip",
+                  whiteSpace: "nowrap",
+                  fontSize: {
+                    xs: "1.5rem",
+                  },
+                }}
+              >
                 {name.charAt(0).toUpperCase() + name.slice(1)}
               </Typography>
-              <Typography variant="h3" color="#333" textAlign="center">
+
+              <Typography
+                variant="h3"
+                color="#333"
+                textAlign="center"
+                sx={{
+                  fontSize: {
+                    xs: "2rem",
+                  },
+                }}
+              >
                 {quantity}
               </Typography>
-              <Stack direction="row" spacing={1}>
+
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: { sm: "1fr 1fr", md: "repeat(4, 1fr)" },
+                  gap: 1,
+                  width: { xs: "100%", sm: "auto" },
+                }}
+              >
+                <Button
+                  sx={{ display: { xs: "none", sm: "block" } }}
+                  variant="contained"
+                  onClick={() => {
+                    addItem(name);
+                  }}
+                >
+                  +
+                </Button>
+                <Button
+                  sx={{ display: { xs: "none", sm: "block" } }}
+                  variant="contained"
+                  onClick={() => {
+                    removeItem(name);
+                  }}
+                >
+                  -
+                </Button>
                 <Button
                   variant="contained"
                   onClick={(e) => {
-                    setEditItemName(name)
-                    handleOpenEdit()
+                    setEditItemName(name);
+                    handleOpenEdit();
                   }}
                 >
                   Edit
@@ -231,32 +321,16 @@ export default function Home() {
                 <Button
                   variant="contained"
                   onClick={() => {
-                    addItem(name)
-                  }}
-                >
-                  +
-                </Button>
-                <Button
-                  variant="contained"
-                  onClick={() => {
-                    removeItem(name)
-                  }}
-                >
-                  -
-                </Button>
-                <Button
-                  variant="contained"
-                  onClick={() => {
-                    clearItem(name)
+                    clearItem(name);
                   }}
                 >
                   Clear
                 </Button>
-              </Stack>
+              </Box>
             </Box>
           ))}
         </Stack>
       </Box>
     </Box>
-  )
+  );
 }
