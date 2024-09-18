@@ -42,6 +42,22 @@ export default function Home() {
     setInventory(inventoryList);
   };
 
+  const generateRecipe = async (items) => {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.NEXT_PUBLIC_OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "meta-llama/llama-3.1-8b-instruct:free",
+        messages: [{ role: "user", content: `Generate a recipe with these items: ${items}` }],
+      }),
+    });
+    const data = await response.json()
+    console.log(data.choices[0].message.content)
+  };
+
   const editItem = async (item, newQuantity) => {
     const docRef = doc(collection(firestore, "inventory"), item);
     const docSnap = await getDoc(docRef);
@@ -202,19 +218,21 @@ export default function Home() {
           </Button>
         </Box>
       </Modal>
-      <Button
-        variant="contained"
-        onClick={() => {
-          handleOpen();
-        }}
-      >
-        Add New Item
-      </Button>
-      <Box 
-        border="1px solid #333"
-      >
+      <Box>
+        <Button variant="contained" onClick={generateRecipe()}>
+          Generate Recipe
+        </Button>
+        <Button
+          variant="contained"
+          onClick={() => {
+            handleOpen();
+          }}
+        >
+          Add New Item
+        </Button>
+      </Box>
+      <Box border="1px solid #333" sx={{ width: { xs: "90vw", md: "60vw" } }}>
         <Box
-          sx={{ width: { xs: "90vw" } }}
           height="10vh"
           bgcolor="#ADD8E6"
           display="flex"
@@ -233,14 +251,7 @@ export default function Home() {
             Inventory Items
           </Typography>
         </Box>
-        <Stack
-          sx={{
-             width: { xs: "90vw" } 
-            }}
-          height="60vh"
-          spacing={2}
-          overflow="auto"
-        >
+        <Stack height="60vh" spacing={2} overflow="auto">
           {inventory.map(({ name, quantity }) => (
             <Box
               key={name}
@@ -248,7 +259,7 @@ export default function Home() {
               minHeight="150px"
               display="grid"
               sx={{
-                gridTemplateColumns: { xs: "1fr .7fr .5fr", sm: "1fr 1fr 1fr" },
+                gridTemplateColumns: { xs: "1fr .7fr .5fr", md: "1fr 1fr 1fr" },
               }}
               alignItems="center"
               bgcolor="#f0f0f0"
@@ -288,7 +299,6 @@ export default function Home() {
                   display: "grid",
                   gridTemplateColumns: { sm: "1fr 1fr", md: "repeat(4, 1fr)" },
                   gap: 1,
-                  width: { xs: "100%", sm: "auto" },
                 }}
               >
                 <Button
