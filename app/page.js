@@ -21,7 +21,7 @@ import {
 } from "firebase/firestore";
 
 export default function Home() {
-  const [inventory, setInventory] = useState([]);
+  const [pantry, setPantry] = useState([]);
   const [open, setOpen] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [itemName, setItemName] = useState("");
@@ -29,17 +29,14 @@ export default function Home() {
   const [editItemQuantity, setEditItemQuantity] = useState(1);
   const [editItemName, setEditItemName] = useState("");
 
-  const updateInventory = async () => {
-    const snapshot = query(collection(firestore, "inventory"));
-    const docs = await getDocs(snapshot);
-    const inventoryList = [];
-    docs.forEach((doc) => {
-      inventoryList.push({
-        name: doc.id,
-        ...doc.data(),
-      });
-    });
-    setInventory(inventoryList);
+  useEffect(() => {
+    updatePantry();
+  }, []);
+
+  const updatePantry = async () => {
+    const response = await fetch('/api/pantry-stock')
+    const pantryList = await response.json()
+    setPantry(pantryList);
   };
 
   const generateRecipe = async (items) => {
@@ -59,17 +56,17 @@ export default function Home() {
   };
 
   const editItem = async (item, newQuantity) => {
-    const docRef = doc(collection(firestore, "inventory"), item);
+    const docRef = doc(collection(firestore, "pantry"), item);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
       await setDoc(docRef, { quantity: newQuantity }, { merge: true });
     }
-    await updateInventory();
+    await updatePantry();
   };
 
   const removeItem = async (item) => {
-    const docRef = doc(collection(firestore, "inventory"), item);
+    const docRef = doc(collection(firestore, "pantry"), item);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
@@ -80,36 +77,36 @@ export default function Home() {
         await setDoc(docRef, { quantity: quantity - 1 });
       }
     }
-    await updateInventory();
+    await updatePantry();
   };
 
   const addItem = async (item) => {
     const cleanedItem = item.toLowerCase().trim();
-    const docRef = doc(collection(firestore, "inventory"), cleanedItem);
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      const { quantity } = docSnap.data();
-      await setDoc(docRef, { quantity: quantity + itemQuantity });
-    } else {
-      await setDoc(docRef, { quantity: itemQuantity });
+    if(pantry.find((e) => e == cleanedItem)){
+      
+    } else{
+      const response = fetch('/api/pantry-stock/new',{
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(cleanedItem)
+      })
     }
-    await updateInventory();
+    await updatePantry()
   };
 
+
+
   const clearItem = async (item) => {
-    const docRef = doc(collection(firestore, "inventory"), item);
+    const docRef = doc(collection(firestore, "pantry"), item);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
       await deleteDoc(docRef);
     }
-    await updateInventory();
+    await updatePantry();
   };
 
-  useEffect(() => {
-    updateInventory();
-  }, []);
+ 
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
@@ -198,7 +195,7 @@ export default function Home() {
             label="Quantity"
             type="number"
             defaultValue={
-              inventory.find((item) => item.name === editItemName)?.quantity ||
+              pantry.find((item) => item.name === editItemName)?.quantity ||
               ""
             }
             onChange={(e) =>
@@ -219,7 +216,7 @@ export default function Home() {
         </Box>
       </Modal>
       <Box>
-        <Button variant="contained" onClick={generateRecipe()}>
+        <Button variant="contained" onClick={generateRecipe('tomato')}>
           Generate Recipe
         </Button>
         <Button
@@ -248,11 +245,11 @@ export default function Home() {
               },
             }}
           >
-            Inventory Items
+            Pantry Items
           </Typography>
         </Box>
         <Stack height="60vh" spacing={2} overflow="auto">
-          {inventory.map(({ name, quantity }) => (
+          {pantry.map(({ name, quantity }) => (
             <Box
               key={name}
               width="100%"
