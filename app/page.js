@@ -34,25 +34,33 @@ export default function Home() {
   }, []);
 
   const updatePantry = async () => {
-    const response = await fetch('/api/pantry-stock')
-    const pantryList = await response.json()
+    const response = await fetch("/api/pantry-stock");
+    const pantryList = await response.json();
     setPantry(pantryList);
   };
 
   const generateRecipe = async (items) => {
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.NEXT_PUBLIC_OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "meta-llama/llama-3.1-8b-instruct:free",
-        messages: [{ role: "user", content: `Generate a recipe with these items: ${items}` }],
-      }),
-    });
-    const data = await response.json()
-    console.log(data.choices[0].message.content)
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "meta-llama/llama-3.1-8b-instruct:free",
+          messages: [
+            {
+              role: "user",
+              content: `Generate a recipe with these items: ${items}`,
+            },
+          ],
+        }),
+      }
+    );
+    const data = await response.json();
+    console.log(data.choices[0].message.content);
   };
 
   const editItem = async (item, newQuantity) => {
@@ -80,21 +88,36 @@ export default function Home() {
     await updatePantry();
   };
 
-  const addItem = async (item) => {
+  const handleUpdate = async (item, quantity, condition) => {
+    const body = { item: item, quantity: quantity , condition: condition};
+    const response = fetch("/api/pantry-stock/update", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    await updatePantry();
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const formData = new FormData(form);
+    const item = formData.get("itemName");
     const cleanedItem = item.toLowerCase().trim();
-    if(pantry.find((e) => e == cleanedItem)){
-      
-    } else{
-      const response = fetch('/api/pantry-stock/new',{
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(cleanedItem)
-      })
-    }
-    await updatePantry()
+    const quantity = formData.get("quantity");
+    const body = { item: cleanedItem, quantity: quantity };
+
+    const response = fetch("/api/pantry-stock/new", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    await updatePantry();
+    setItemName("");
+    setItemQuantity("");
+    handleClose();
   };
-
-
 
   const clearItem = async (item) => {
     const docRef = doc(collection(firestore, "pantry"), item);
@@ -105,8 +128,6 @@ export default function Home() {
     }
     await updatePantry();
   };
-
- 
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
@@ -141,36 +162,32 @@ export default function Home() {
           }}
         >
           <Typography variant="h6">Add Item</Typography>
-          <Stack width="100%" direction="row" spacing={2}>
-            <TextField
-              variant="outlined"
-              label="Item"
-              value={itemName}
-              onChange={(e) => {
-                setItemName(e.target.value);
-              }}
-            />
-            <TextField
-              variant="outlined"
-              label="Quantity"
-              type="number"
-              value={itemQuantity}
-              onChange={(e) =>
-                setItemQuantity(Math.max(1, parseInt(e.target.value) || 1))
-              }
-            />
-            <Button
-              variant="outlined"
-              onClick={() => {
-                addItem(itemName);
-                setItemName("");
-                setItemQuantity(1);
-                handleClose();
-              }}
-            >
-              Add
-            </Button>
-          </Stack>
+          <form onSubmit={handleSubmit}>
+            <Stack width="100%" direction="row" spacing={2}>
+              <TextField
+                variant="outlined"
+                label="Item"
+                name="itemName"
+                value={itemName}
+                onChange={(e) => {
+                  setItemName(e.target.value);
+                }}
+              />
+              <TextField
+                variant="outlined"
+                label="Quantity"
+                type="number"
+                name="quantity"
+                value={itemQuantity}
+                onChange={(e) =>
+                  setItemQuantity(Math.max(1, parseInt(e.target.value) || 1))
+                }
+              />
+              <Button variant="outlined" type="submit">
+                Add
+              </Button>
+            </Stack>
+          </form>
         </Box>
       </Modal>
       <Modal open={openEdit} onClose={handleCloseEdit}>
@@ -195,8 +212,7 @@ export default function Home() {
             label="Quantity"
             type="number"
             defaultValue={
-              pantry.find((item) => item.name === editItemName)?.quantity ||
-              ""
+              pantry.find((item) => item.name === editItemName)?.quantity || ""
             }
             onChange={(e) =>
               setEditItemQuantity(Math.max(1, parseInt(e.target.value) || 1))
@@ -216,7 +232,7 @@ export default function Home() {
         </Box>
       </Modal>
       <Box>
-        <Button variant="contained" onClick={generateRecipe('tomato')}>
+        <Button variant="contained" onClick={() => generateRecipe("tomato")}>
           Generate Recipe
         </Button>
         <Button
@@ -302,7 +318,7 @@ export default function Home() {
                   sx={{ display: { xs: "none", sm: "block" } }}
                   variant="contained"
                   onClick={() => {
-                    addItem(name);
+                    handleUpdate(name, 1, "add")
                   }}
                 >
                   +
@@ -311,7 +327,7 @@ export default function Home() {
                   sx={{ display: { xs: "none", sm: "block" } }}
                   variant="contained"
                   onClick={() => {
-                    removeItem(name);
+                    handleUpdate(name, 1, "subtract")
                   }}
                 >
                   -
