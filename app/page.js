@@ -25,7 +25,7 @@ export default function Home() {
   const [open, setOpen] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [itemName, setItemName] = useState("");
-  const [itemQuantity, setItemQuantity] = useState(1);
+  const [itemQuantity, setItemQuantity] = useState("");
   const [editItemQuantity, setEditItemQuantity] = useState(1);
   const [editItemName, setEditItemName] = useState("");
 
@@ -63,40 +63,29 @@ export default function Home() {
     console.log(data.choices[0].message.content);
   };
 
-  const editItem = async (item, newQuantity) => {
-    const docRef = doc(collection(firestore, "pantry"), item);
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      await setDoc(docRef, { quantity: newQuantity }, { merge: true });
-    }
-    await updatePantry();
-  };
-
-  const removeItem = async (item) => {
-    const docRef = doc(collection(firestore, "pantry"), item);
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      const { quantity } = docSnap.data();
-      if (quantity == 1) {
-        await deleteDoc(docRef);
-      } else {
-        await setDoc(docRef, { quantity: quantity - 1 });
-      }
-    }
-    await updatePantry();
-  };
-
   const handleUpdate = async (item, quantity, condition) => {
-    const body = { item: item, quantity: quantity , condition: condition};
-    const response = fetch("/api/pantry-stock/update", {
+    const body = { item: item, quantity: quantity, condition: condition };
+    const response = await fetch("/api/pantry-stock/update", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
     await updatePantry();
-  }
+  };
+
+  const handleUpdateEditForm = async (e) => {
+    e.preventDefault();
+    const body = { item: editItemName, quantity: editItemQuantity, condition: "update" };
+    const response = await fetch("/api/pantry-stock/update", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    await updatePantry();
+    setEditItemName("");
+    setEditItemQuantity("");
+    handleCloseEdit();
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -107,7 +96,7 @@ export default function Home() {
     const quantity = formData.get("quantity");
     const body = { item: cleanedItem, quantity: quantity };
 
-    const response = fetch("/api/pantry-stock/new", {
+    const response = await fetch("/api/pantry-stock/new", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -207,28 +196,27 @@ export default function Home() {
             transform: "translate(-50%, -50%)",
           }}
         >
-          <TextField
-            variant="outlined"
-            label="Quantity"
-            type="number"
-            defaultValue={
-              pantry.find((item) => item.name === editItemName)?.quantity || ""
-            }
-            onChange={(e) =>
-              setEditItemQuantity(Math.max(1, parseInt(e.target.value) || 1))
-            }
-          />
-          <Button
-            variant="outlined"
-            onClick={() => {
-              editItem(editItemName, editItemQuantity);
-              setEditItemName("");
-              setEditItemQuantity(1);
-              handleCloseEdit();
-            }}
-          >
-            Save
-          </Button>
+          <form onSubmit={handleUpdateEditForm}>
+            <TextField
+              variant="outlined"
+              label="Quantity"
+              type="number"
+              name="editQuantity"
+              defaultValue={
+                pantry.find((item) => item.name === editItemName)?.quantity ||
+                ""
+              }
+              onChange={(e) =>
+                setEditItemQuantity(Math.max(1, parseInt(e.target.value) || 1))
+              }
+            />
+            <Button
+              variant="outlined"
+              type="submit"
+            >
+              Save
+            </Button>
+          </form>
         </Box>
       </Modal>
       <Box>
@@ -318,7 +306,7 @@ export default function Home() {
                   sx={{ display: { xs: "none", sm: "block" } }}
                   variant="contained"
                   onClick={() => {
-                    handleUpdate(name, 1, "add")
+                    handleUpdate(name, 1, "add");
                   }}
                 >
                   +
@@ -327,7 +315,7 @@ export default function Home() {
                   sx={{ display: { xs: "none", sm: "block" } }}
                   variant="contained"
                   onClick={() => {
-                    handleUpdate(name, 1, "subtract")
+                    handleUpdate(name, 1, "subtract");
                   }}
                 >
                   -
