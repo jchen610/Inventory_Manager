@@ -23,12 +23,9 @@ import {
 
 export default function Home() {
   const [pantry, setPantry] = useState([]);
-  const [open, setOpen] = useState(false);
-  const [openEdit, setOpenEdit] = useState(false);
+  const [open, setOpen] = useState("none");
   const [itemName, setItemName] = useState("");
   const [itemQuantity, setItemQuantity] = useState("");
-  const [editItemQuantity, setEditItemQuantity] = useState(1);
-  const [editItemName, setEditItemName] = useState("");
 
   useEffect(() => {
     updatePantry();
@@ -65,15 +62,15 @@ export default function Home() {
 
   const handleUpdateEditForm = async (e) => {
     e.preventDefault();
-    const body = { item: editItemName, quantity: editItemQuantity, condition: "update" };
+    const body = { item: itemName, quantity: itemQuantity, condition: "update" };
     const response = await fetch("/api/pantry-stock/update", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
     await updatePantry();
-    setEditItemName("");
-    setEditItemQuantity("");
+    setItemName("");
+    setItemQuantity("");
     handleCloseEdit();
   };
 
@@ -83,7 +80,7 @@ export default function Home() {
     const formData = new FormData(form);
     const item = formData.get("itemName");
     const cleanedItem = item.toLowerCase().trim();
-    const quantity = formData.get("quantity");
+    const quantity = formData.get("quantity") || 1;
     const body = { item: cleanedItem, quantity: quantity };
 
     const response = await fetch("/api/pantry-stock/new", {
@@ -108,10 +105,8 @@ export default function Home() {
     await updatePantry();
   };
 
-  const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
-  const handleOpenEdit = () => setOpenEdit(true);
-  const handleCloseEdit = () => setOpenEdit(false);
+  const handleOpen = (modalType) => setOpen(modalType);
+  const handleClose = () => setOpen("none");
 
   return (
     <Box
@@ -123,7 +118,7 @@ export default function Home() {
       alignItems="center"
       gap={2}
     >
-      <Modal open={open} onClose={handleClose}>
+      <Modal open={open =="add"} onClose={handleClose}>
         <Box
           position="absolute"
           top="50%"
@@ -169,7 +164,7 @@ export default function Home() {
           </form>
         </Box>
       </Modal>
-      <Modal open={openEdit} onClose={handleCloseEdit}>
+      <Modal open={open == "edit"} onClose={() => { handleClose(); setItemName(""); setItemQuantity(""); }}>
         <Box
           position="absolute"
           top="50%"
@@ -193,11 +188,11 @@ export default function Home() {
               type="number"
               name="editQuantity"
               defaultValue={
-                pantry.find((item) => item.name === editItemName)?.quantity ||
+                pantry.find((item) => item.name === itemName)?.quantity ||
                 ""
               }
               onChange={(e) =>
-                setEditItemQuantity(Math.max(1, parseInt(e.target.value) || 1))
+                setItemQuantity(Math.max(1, parseInt(e.target.value) || 1))
               }
             />
             <Button
@@ -216,7 +211,7 @@ export default function Home() {
         <Button
           variant="contained"
           onClick={() => {
-            handleOpen();
+            handleOpen("add");
           }}
         >
           Add New Item
@@ -313,8 +308,8 @@ export default function Home() {
                 <Button
                   variant="contained"
                   onClick={(e) => {
-                    setEditItemName(name);
-                    handleOpenEdit();
+                    setItemName(name);
+                    handleOpen("edit");
                   }}
                 >
                   Edit

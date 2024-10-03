@@ -18,7 +18,7 @@ export async function POST(request) {
           messages: [
             {
               role: "user",
-              content: `Generate a recipe with these ingredients: ${body["ingredients"]}`,
+              content: `Generate a recipe with some of these ingredients: ${body["ingredients"]} Ignoring any items that don't make sense without referencing them in the response.`,
             },
           ],
         }),
