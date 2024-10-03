@@ -5,6 +5,7 @@ import { firestore } from "@/firebase";
 import {
   Box,
   Button,
+  listItemSecondaryActionClasses,
   Modal,
   Stack,
   TextField,
@@ -39,29 +40,18 @@ export default function Home() {
     setPantry(pantryList);
   };
 
-  const generateRecipe = async (items) => {
-    const response = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "meta-llama/llama-3.1-8b-instruct:free",
-          messages: [
-            {
-              role: "user",
-              content: `Generate a recipe with these items: ${items}`,
-            },
-          ],
-        }),
-      }
-    );
-    const data = await response.json();
-    console.log(data.choices[0].message.content);
+  const generateRecipe = async () => {
+    const ingredientList = pantry.map((ingredient) => ingredient.name)
+    const body = {ingredients: ingredientList}
+    const response = await fetch("/api/generate-recipe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const recipe = await response.json();
+    console.log(recipe)
   };
+
 
   const handleUpdate = async (item, quantity, condition) => {
     const body = { item: item, quantity: quantity, condition: condition };
@@ -219,8 +209,8 @@ export default function Home() {
           </form>
         </Box>
       </Modal>
-      <Box>
-        <Button variant="contained" onClick={() => generateRecipe("tomato")}>
+      <Box display="flex" gap={2}>
+        <Button variant="contained" onClick={generateRecipe}>
           Generate Recipe
         </Button>
         <Button
