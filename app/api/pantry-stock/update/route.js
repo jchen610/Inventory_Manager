@@ -37,7 +37,6 @@ export async function PATCH(request) {
       { status: 201 }
     );
   } catch (error) {
-    console.log(error);
     return NextResponse.json(
       { error: "Failed to add item to pantry" },
       { status: 500 }

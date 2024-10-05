@@ -5,27 +5,24 @@ import { firestore } from "@/firebase";
 import {
   Box,
   Button,
-  listItemSecondaryActionClasses,
   Modal,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  getDoc,
-  query,
-  setDoc,
-} from "firebase/firestore";
+import { collection, deleteDoc, doc, getDoc } from "firebase/firestore";
+import CameraComponent from "./components/camera.js";
+import Popup from "./components/popup.js";
+import { OpenAI } from "openai";
 
 export default function Home() {
   const [pantry, setPantry] = useState([]);
   const [open, setOpen] = useState("none");
   const [itemName, setItemName] = useState("");
   const [itemQuantity, setItemQuantity] = useState("");
+  const [recipeStatus, setRecipeStatus] = useState(false);
+  const [recipe, setRecipe] = useState("");
+  const [image, setImage] = useState(null);
 
   useEffect(() => {
     updatePantry();
@@ -37,18 +34,33 @@ export default function Home() {
     setPantry(pantryList);
   };
 
+  const parseImage = async () => {
+    const body = {
+      image: image,
+    };
+    const response = await fetch("/api/scan-pantry", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const parsedItems = await response.json();
+    console.log(parsedItems);
+    setImage(null)
+  };
+
+ 
   const generateRecipe = async () => {
-    const ingredientList = pantry.map((ingredient) => ingredient.name)
-    const body = {ingredients: ingredientList}
+    const ingredientList = pantry.map((ingredient) => ingredient.name);
+    const body = { ingredients: ingredientList };
     const response = await fetch("/api/generate-recipe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
     const recipe = await response.json();
-    console.log(recipe)
+    setRecipeStatus(true);
+    setRecipe(recipe);
   };
-
 
   const handleUpdate = async (item, quantity, condition) => {
     const body = { item: item, quantity: quantity, condition: condition };
@@ -62,7 +74,11 @@ export default function Home() {
 
   const handleUpdateEditForm = async (e) => {
     e.preventDefault();
-    const body = { item: itemName, quantity: itemQuantity, condition: "update" };
+    const body = {
+      item: itemName,
+      quantity: itemQuantity,
+      condition: "update",
+    };
     const response = await fetch("/api/pantry-stock/update", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -118,23 +134,8 @@ export default function Home() {
       alignItems="center"
       gap={2}
     >
-      <Modal open={open =="add"} onClose={handleClose}>
-        <Box
-          position="absolute"
-          top="50%"
-          left="50%"
-          width={400}
-          bgcolor="white"
-          border="2px solid #0000"
-          boxShadow={24}
-          p={4}
-          display="flex"
-          flexDirection="column"
-          gap={3}
-          sx={{
-            transform: "translate(-50%, -50%)",
-          }}
-        >
+      <Modal open={open == "add"} onClose={handleClose}>
+        <Popup width={400}>
           <Typography variant="h6">Add Item</Typography>
           <form onSubmit={handleSubmit}>
             <Stack width="100%" direction="row" spacing={2}>
@@ -162,25 +163,17 @@ export default function Home() {
               </Button>
             </Stack>
           </form>
-        </Box>
+        </Popup>
       </Modal>
-      <Modal open={open == "edit"} onClose={() => { handleClose(); setItemName(""); setItemQuantity(""); }}>
-        <Box
-          position="absolute"
-          top="50%"
-          left="50%"
-          width={150}
-          bgcolor="white"
-          border="2px solid #0000"
-          boxShadow={24}
-          p={4}
-          display="flex"
-          flexDirection="column"
-          gap={2}
-          sx={{
-            transform: "translate(-50%, -50%)",
-          }}
-        >
+      <Modal
+        open={open == "edit"}
+        onClose={() => {
+          handleClose();
+          setItemName("");
+          setItemQuantity("");
+        }}
+      >
+        <Popup width={150} gap={2}>
           <form onSubmit={handleUpdateEditForm}>
             <TextField
               variant="outlined"
@@ -188,24 +181,86 @@ export default function Home() {
               type="number"
               name="editQuantity"
               defaultValue={
-                pantry.find((item) => item.name === itemName)?.quantity ||
-                ""
+                pantry.find((item) => item.name === itemName)?.quantity || ""
               }
               onChange={(e) =>
                 setItemQuantity(Math.max(1, parseInt(e.target.value) || 1))
               }
             />
-            <Button
-              variant="outlined"
-              type="submit"
-            >
+            <Button variant="outlined" type="submit">
               Save
             </Button>
           </form>
-        </Box>
+        </Popup>
+      </Modal>
+      <Modal
+        open={open == "recipe"}
+        onClose={() => {
+          handleClose();
+          setRecipeStatus(false);
+          setRecipe("");
+        }}
+      >
+        <Popup width={700} height="80%">
+          <Typography variant="h5" color="text.primary" textAlign="center">
+            Generated Recipe
+          </Typography>
+          <Typography
+            variant="body1"
+            color="text.secondary"
+            textAlign="center"
+            sx={{
+              maxHeight: "80%",
+              overflowY: "auto",
+              overflowX: "hidden",
+            }}
+          >
+            {recipeStatus ? (
+              <p>
+                {recipe["recipe"].split("\n").map((line, index) => (
+                  <span key={index}>
+                    {line}
+                    <br />
+                  </span>
+                ))}
+              </p>
+            ) : (
+              <span>Loading...</span>
+            )}
+          </Typography>
+        </Popup>
+      </Modal>
+      <Modal
+        open={open == "camera"}
+        onClose={() => {
+          handleClose();
+        }}
+      >
+        <Popup width="50%" height="50%">
+          <Box
+            display="flex"
+            justifyContent="center"
+            flexDirection="column"
+            gap={3}
+          >
+            <CameraComponent
+              setImage={setImage}
+              onClick={parseImage}
+              image={image}
+            >
+              Take Picture
+            </CameraComponent>
+          </Box>
+        </Popup>
       </Modal>
       <Box display="flex" gap={2}>
-        <Button variant="contained" onClick={generateRecipe}>
+        <Button
+          variant="contained"
+          onClick={() => {
+            handleOpen("recipe");
+            generateRecipe();
+          }}
+        >
           Generate Recipe
         </Button>
         <Button
@@ -215,6 +270,14 @@ export default function Home() {
           }}
         >
           Add New Item
+        </Button>
+        <Button
+          variant="contained"
+          onClick={() => {
+            handleOpen("camera");
+          }}
+        >
+          Camera
         </Button>
       </Box>
       <Box border="1px solid #333" sx={{ width: { xs: "90vw", md: "60vw" } }}>

@@ -1,5 +1,3 @@
-import { firestore } from "@/firebase";
-import { collection, setDoc, doc } from "firebase/firestore";
 import { NextResponse } from "next/server";
 
 export async function POST(request) {
@@ -37,7 +35,6 @@ export async function POST(request) {
       { status: 201 }
     );
   } catch (error) {
-    console.error(error);
     return NextResponse.json(
       { error: "Failed to generate recipe. Please try again." },
       { status: 500 }
